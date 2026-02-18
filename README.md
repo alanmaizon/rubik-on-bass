@@ -1,87 +1,111 @@
 # Rubik Bass
 
-An interactive 4x4 Rubik's Cube audiovisual sequencer built with Three.js and Tone.js.
+An interactive 4x4 Rubik's Cube audiovisual sequencer available as a **web app** and a **native iOS app**.
 
 ## About The Project
 
-Rubik Bass is a unique web-based musical instrument that transforms a fully interactive 4x4 Rubik's Cube into a 16-step arpeggio sequencer. The colors on the face of the cube directly map to musical notes, creating a dynamic and visually engaging way to compose music.
+Rubik Bass is a unique musical instrument that transforms a fully interactive 4x4 Rubik's Cube into a 16-step arpeggio sequencer. The colors on the face of the cube directly map to musical notes, creating a dynamic and visually engaging way to compose music.
 
-What started as a simple 3D model has evolved into a feature-rich creative tool with controls for tempo, note muting, and cube manipulation, all wrapped in a modern, responsive interface.
+What started as a simple 3D model has evolved into a feature-rich creative tool with controls for tempo, note muting, and cube manipulation — available on both the web and iOS.
 
-## Features
+## Repository Structure
+
+```
+rubik-on-bass/
+├── web/            # Web version (HTML/JS)
+│   ├── index.html
+│   ├── script.js
+│   └── *.wav       # Audio samples
+├── ios/            # iOS version (Swift/SwiftUI)
+│   ├── RubikCube/          # Xcode project source files
+│   │   ├── Assets.xcassets/
+│   │   ├── Audio/          # Audio samples
+│   │   ├── AudioManager.swift
+│   │   ├── ContentView.swift
+│   │   ├── Models.swift
+│   │   ├── RotationControlsView.swift
+│   │   ├── RubikCubeSequencerApp.swift
+│   │   ├── RubikCubeViewModel.swift
+│   │   └── SceneKitView.swift
+│   └── RubikCube.xcodeproj.zip
+└── README.md
+```
+
+## Features (Both Versions)
 
   * **Interactive 4x4 Rubik's Cube:** A fully functional 4x4 cube that can be rotated and scrambled.
-  * **Complete Rotational Control:** Use the UI to rotate all 12 slices (outer faces and inner slices) clockwise or counter-clockwise.
   * **Audiovisual Sequencer:** The 16 colors on the front face are read in real-time to create a looping 16-note arpeggio.
-  * **Custom Audio Samples:** Uses `Tone.Sampler` to allow any `.wav` or `.mp3` files to be used for the notes, giving the instrument a unique sound.
-  * **Interactive Muting:** Click or tap directly on any sticker on the cube to toggle its corresponding note on or off in the sequence.
-  * **Real-time Tempo Control:** A BPM (Beats Per Minute) input allows for precise control over the sequencer's tempo.
-  * **Note Length Switch:** A dedicated switch to toggle note lengths, allowing for rhythmic variation between standard and short, *staccato* notes.
-  * **Master Controls:** Includes "Mute All," "Unmute All," "Reset Cube" to its solved state, and "Scramble" for instant randomization.
-  * **Visual Feedback:** Each sticker emits a "halo" of light in sync with its note being played in the sequence, and muted stickers are visually dimmed.
-  * **Responsive Collapsible UI:** All controls are housed in a sleek, collapsible side menu that works on both desktop and mobile devices.
-  * **Mobile Touch Support:** Carefully designed touch handling to differentiate between rotating the cube (dragging) and muting a sticker (tapping).
+  * **Custom Audio Samples:** Six `.wav` audio samples mapped to cube face colors and musical notes.
+  * **Interactive Muting:** Tap directly on any sticker on the cube to toggle its note on or off.
+  * **Real-time Tempo Control:** Adjustable BPM (Beats Per Minute) for precise sequencer speed.
+  * **Master Controls:** Includes Mute All, Unmute All, Reset Cube, and Scramble.
+  * **Visual Feedback:** Active stickers are highlighted in sync with the sequencer.
+
+## Differences Between Web and iOS Versions
+
+| Feature | Web | iOS |
+|---|---|---|
+| **3D Engine** | Three.js | SceneKit |
+| **Audio Engine** | Tone.js (`Tone.Sampler` + `Tone.Sequence`) | AVAudioEngine (`AVAudioPlayerNode`) |
+| **Sequencer Timing** | `Tone.Transport` (sample-accurate scheduling) | `Timer` (run-loop based scheduling) |
+| **UI Framework** | HTML/CSS with collapsible side menu | SwiftUI with overlay controls |
+| **Rotation Controls** | Named face turns: U, L, R, D + inner slices (u, l, r) with clockwise/counter-clockwise | Orientation-independent slice buttons: R1–R4 (rows), C1–C4 (columns), A1–A4 (aisles) |
+| **Note Length Toggle** | Half Note Length checkbox (e.g. `16n` → `32n`) | Half-length toggle (planned) |
+| **Orbit / Camera** | OrbitControls (mouse drag + touch) | Built-in SceneKit camera control (`allowsCameraControl`) |
+| **Touch Handling** | Custom drag vs. tap detection with threshold + duration | Native `UITapGestureRecognizer` (SceneKit handles orbit separately) |
+| **Mute Visuals** | Color dimmed to 40% brightness | Managed via published state (highlight set) |
+| **Sticker Halo Effect** | Emissive material glow on note play | Highlight state via `@Published` set |
+| **Front Face Detection** | Camera-relative dot product on face normals | Camera-relative dot product on face normals (same algorithm) |
+| **Minimum Requirements** | Modern browser with ES6 module support | iOS 15.0 or later |
 
 ## Getting Started
 
-To get a local copy up and running, follow these simple steps.
+### Web Version
 
-### Prerequisites
+1.  **Clone the repository** and navigate to the `web/` directory.
 
-You only need a modern web browser that supports ES6 Modules (like Chrome, Firefox, Edge, or Safari). No complex build tools are required.
+2.  **Run a local server** (required for audio loading due to CORS policy):
 
-### Installation
+      * **Python:** `cd web && python -m http.server`
+      * **Node.js:** `npx live-server web`
+      * **VS Code:** Use the Live Server extension on `web/index.html`.
 
-1.  **Get the Code:**
-    Download or clone the project files (`index.html`, `script.js`) into a folder on your computer.
+3.  **Open** `http://localhost:8000` (or the address shown) in your browser.
 
-2.  **Add Your Audio Samples:**
-    Place your six `.wav` audio sample files in the same root folder. The script is currently configured to look for these specific filenames:
+#### Customizing Audio Samples
 
-      * `white.wav`
-      * `red.wav`
-      * `blue.wav`
-      * `orange.wav`
-      * `green.wav`
-      * `yellow.wav`
+Place your own `.wav` files in the `web/` directory and update the `synthSamples` object in `web/script.js`:
 
-3.  **Update File Paths (If Necessary):**
-    If your audio files have different names, open `script.js` and update the `synthSamples` object accordingly:
+```javascript
+const synthSamples = {
+    'C4': 'your_white_note.wav',
+    'D4': 'your_red_note.wav',
+    // etc...
+};
+```
 
-    ```javascript
-    const synthSamples = { 
-        'C4': 'your_white_note.wav', 
-        'D4': 'your_red_note.wav',
-        // etc...
-    };
-    ```
+### iOS Version
 
-4.  **Run a Local Server:**
-    For security reasons (CORS policy), browsers cannot load local files (like your audio samples) directly. You need to serve the files from a simple local server.
+1.  **Clone the repository.**
+2.  **Unzip** `ios/RubikCube.xcodeproj.zip` into the `ios/` directory.
+3.  **Open** the `.xcodeproj` in Xcode.
+4.  **Build and run** on a simulator or device (iOS 15.0+).
 
-      * If you have Python installed, navigate to your project folder in the terminal and run: `python -m http.server`
-      * If you have Node.js, you can install a simple server: `npm install -g live-server` and then run `live-server` in your project folder.
-      * You can also use the "Go Live" feature in VS Code's Live Server extension.
-
-5.  **Open the Project:**
-    Open your web browser and navigate to the local server address (usually `http://localhost:8000` or `http://127.0.0.1:8080`).
+Audio samples are bundled in `ios/RubikCube/Audio/`.
 
 ## How to Use
 
-  * **Rotate the Cube:** Click and drag (or use touch) on the cube to rotate your view.
-  * **Open the Controls:** Click the **MENU** tab on the right side of the screen to slide out the control panel.
-  * **Turn Faces:** Use the `U`, `L`, `R`, `D` buttons for outer face turns and `u`, `l`, `r` for inner slice turns. The apostrophe (') indicates a counter-clockwise turn.
-  * **Control the Sequencer:**
-      * Use the **BPM** input to set the tempo.
-      * Click the **"Half Note Length"** checkbox to toggle between short and long notes.
-      * Press **Play/Stop** to start or stop the arpeggio.
-  * **Mute Notes:** Click (or tap) directly on any colored sticker on the cube's surface to mute or unmute its note in the sequence.
-  * **Master Controls:** Use "Mute All," "Unmute All," "Reset Cube," and "Scramble" for global actions.
+  * **Rotate the Cube:** Click and drag (web) or use touch gestures (both) to orbit the 3D view.
+  * **Turn Faces:**
+      * *Web:* Open the **MENU** panel and use the `U`, `L`, `R`, `D` buttons for outer faces and `u`, `l`, `r` for inner slices. The apostrophe (') indicates counter-clockwise.
+      * *iOS:* Use the **R1–R4** (row), **C1–C4** (column), and **A1–A4** (aisle) buttons around the screen edges.
+  * **Control the Sequencer:** Adjust **BPM**, toggle **Half Note Length**, and press **Play/Stop**.
+  * **Mute Notes:** Tap any colored sticker on the cube to mute or unmute its note.
+  * **Master Controls:** Use Mute All, Unmute All, Reset Cube, and Scramble.
 
 ## Technologies Used
 
-  * **JavaScript (ES6 Modules)**
-  * **Three.js:** For all 3D rendering and interaction.
-  * **Tone.js:** For all audio synthesis, sequencing, and timing.
+  * **Web:** JavaScript (ES6 Modules), Three.js, Tone.js
+  * **iOS:** Swift, SwiftUI, SceneKit, AVFoundation
 
 It's been a pleasure building this incredible project with help of Gemini 2.5
