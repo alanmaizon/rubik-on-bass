@@ -114,6 +114,10 @@ The loop also drives a synchronized 808-style drum machine with kick, snare, clo
 and clap tracks. Each track starts with a simple pattern; click its 16 steps to turn hits on
 or off. The drum tracks use the same Tone.js transport and BPM as the Rubik bass sequence.
 
+Playback uses Tone.js's short look-ahead scheduler. The drum voices are created once and stay
+scheduled while the cube view changes, so camera movement and pattern edits do not restart the
+transport or add timing jitter.
+
 ## Technologies Used
 
   * **Web:** JavaScript (ES6 Modules), Three.js, Tone.js

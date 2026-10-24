@@ -22,6 +22,8 @@ let touchStartX, touchStartY, isDragging;
 let touchStartTime; 
 
 // --- Constants ---
+const audioContext = Tone.getContext();
+audioContext.lookAhead = 0.03;
 const CUBE_COLORS = { WHITE: 0xffffff, RED: 0xb71234, YELLOW: 0xffd500, ORANGE: 0xff5800, GREEN: 0x009b48, BLUE: 0x0046ad, BLACK: 0x111111 };
 const CUBE_MOVES = {
     'U': { axis: 'y', layers: [1.5], sign: -1 }, 'u': { axis: 'y', layers: [0.5], sign: -1 }, 'D': { axis: 'y', layers: [-1.5], sign: 1 },
@@ -138,7 +140,18 @@ function setupEventListeners() {
 async function startSequencer() {
     await Tone.start();
     if (currentFrontFaceStickers.length < 16) return;
-    
+
+    const wasPlaying = isPlaying;
+    setupBassSequence();
+    if (!wasPlaying) {
+        setupDrumSequences();
+        Tone.Transport.start();
+        isPlaying = true;
+    }
+    document.getElementById('toggleLoopBtn').textContent = 'Stop';
+}
+
+function setupBassSequence() {
     // NEW: Calculate the note duration based on the switch state
     let noteDuration = currentBaseNoteDuration;
     if (isHalfLength) {
@@ -149,7 +162,6 @@ async function startSequencer() {
 
     const data = currentFrontFaceStickers.map((s, index) => ({ note: COLOR_TO_NOTE_MAP[s.color], ...s, index, id: stickerId(s) }));
     if (arpeggioSequence) arpeggioSequence.dispose();
-    disposeDrumSequences();
     
     arpeggioSequence = new Tone.Sequence((time, d) => {
         activeStep = d.index;
@@ -160,10 +172,6 @@ async function startSequencer() {
         if (mat) { mat.emissive.setHex(d.color); mat.emissiveIntensity = 0.8; setTimeout(() => mat.emissiveIntensity = 0, 100); }
     }, data, "16n").start(0);
     arpeggioSequence.loop = true;
-    setupDrumSequences();
-    Tone.Transport.start();
-    isPlaying = true;
-    document.getElementById('toggleLoopBtn').textContent = 'Stop';
 }
 
 function stopSequencer() {
@@ -210,10 +218,11 @@ function setupDrumSequences() {
         hat: (time) => drumKit.hat.triggerAttackRelease('32n', time),
         clap: (time) => drumKit.clap.triggerAttackRelease('16n', time)
     };
-    drumSequences = Object.entries(drumPatterns).map(([track, pattern]) =>
-        new Tone.Sequence((time, enabled) => {
-            if (enabled) trigger[track](time);
-        }, pattern, '16n').start(0)
+    const steps = Array.from({ length: 16 }, (_, index) => index);
+    drumSequences = Object.keys(drumPatterns).map(track =>
+        new Tone.Sequence((time, index) => {
+            if (drumPatterns[track][index]) trigger[track](time);
+        }, steps, '16n').start(0)
     );
     drumSequences.forEach(sequence => { sequence.loop = true; });
 }
