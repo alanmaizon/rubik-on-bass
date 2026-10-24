@@ -10,6 +10,7 @@ let playheadFrame = 0;
 let drumSequences = [], drumKit = null;
 const mutedStickers = new Set();
 let sampler; // Audio player
+let samplerReady = false;
 let allCubies = [];
 let currentBaseNoteDuration = '16n';
 let isHalfLength = false;
@@ -43,6 +44,7 @@ function loadAudioAssets() {
     const toggleLoopBtn = document.getElementById('toggleLoopBtn');
     const synthSamples = { 'C4': 'white.wav', 'D4': 'red.wav', 'E4': 'blue.wav', 'G4': 'orange.wav', 'A4': 'green.wav', 'C5': 'yellow.wav' };
     sampler = new Tone.Sampler({ urls: synthSamples, baseUrl: "./", onload: () => {
+        samplerReady = true;
         console.log('Audio samples loaded successfully.');
         if (toggleLoopBtn) { toggleLoopBtn.disabled = false; toggleLoopBtn.textContent = 'Play'; }
     }}).toDestination();
@@ -199,12 +201,17 @@ async function startSequencer() {
     const rawContext = await ensureAudioRunning();
     setAudioStatus(`Sequencer audio ready · context ${rawContext.state}`);
     if (currentFrontFaceStickers.length < 16) return;
+    if (!samplerReady) {
+        throw new Error('Bass samples are still loading; try Play again');
+    }
 
     const wasPlaying = isPlaying;
     setupBassSequence();
     if (!wasPlaying) {
+        Tone.Transport.stop();
+        Tone.Transport.position = 0;
         setupDrumSequences();
-        Tone.Transport.start();
+        Tone.Transport.start(undefined, 0);
         isPlaying = true;
         updatePlayhead();
     }
