@@ -48,6 +48,30 @@ function loadAudioAssets() {
     }}).toDestination();
 }
 
+function setAudioStatus(message) {
+    const status = document.getElementById('audioStatus');
+    if (status) status.textContent = message;
+}
+
+async function ensureAudioRunning() {
+    await Tone.start();
+    const rawContext = Tone.getContext().rawContext;
+    if (rawContext.state !== 'running') await rawContext.resume();
+    if (rawContext.state !== 'running') {
+        throw new Error(`AudioContext is ${rawContext.state}; allow audio and try again`);
+    }
+    return rawContext;
+}
+
+async function testSound() {
+    const rawContext = await ensureAudioRunning();
+    const oscillator = new Tone.Oscillator(440, 'sine').toDestination();
+    oscillator.volume.value = -6;
+    oscillator.start();
+    oscillator.stop('+0.25');
+    setAudioStatus(`Direct tone triggered · context ${rawContext.state}`);
+}
+
 function updatePlayhead() {
     if (!isPlaying) return;
     const stepDuration = Tone.Time('16n').toSeconds();
@@ -126,6 +150,12 @@ function setupEventListeners() {
             });
         }
     });
+    document.getElementById('testSoundBtn')?.addEventListener('click', () => {
+        testSound().catch(error => {
+            console.error('Direct audio test failed:', error);
+            setAudioStatus(`Audio test failed: ${error.message}`);
+        });
+    });
     document.getElementById('playRandomBtn')?.addEventListener('click', scrambleCube);
     document.getElementById('resetCubeBtn')?.addEventListener('click', resetCube);
     document.getElementById('muteAllBtn')?.addEventListener('click', () => muteAllStickers(true));
@@ -166,12 +196,8 @@ function setupEventListeners() {
 
 // --- Sequencer & Master Controls ---
 async function startSequencer() {
-    await Tone.start();
-    const rawContext = Tone.getContext().rawContext;
-    if (rawContext.state !== 'running') await rawContext.resume();
-    if (rawContext.state !== 'running') {
-        throw new Error(`AudioContext is ${rawContext.state}; click Play again to allow audio`);
-    }
+    const rawContext = await ensureAudioRunning();
+    setAudioStatus(`Sequencer audio ready · context ${rawContext.state}`);
     if (currentFrontFaceStickers.length < 16) return;
 
     const wasPlaying = isPlaying;
