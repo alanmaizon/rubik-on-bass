@@ -6,6 +6,7 @@ let scene, camera, renderer, controls, rubikCube;
 let isAnimating = false, rotationQueue = [], currentAnimation = null;
 let currentFrontFaceStickers = [], arpeggioSequence = null, isPlaying = false;
 let activeStep = -1;
+let playheadFrame = 0;
 let drumSequences = [], drumKit = null;
 const mutedStickers = new Set();
 let sampler; // Audio player
@@ -22,8 +23,12 @@ let touchStartX, touchStartY, isDragging;
 let touchStartTime; 
 
 // --- Constants ---
-const audioContext = Tone.getContext();
-audioContext.lookAhead = 0.03;
+Tone.setContext(new Tone.Context({
+    latencyHint: 'interactive',
+    lookAhead: 0.01,
+    updateInterval: 0.01
+}));
+Tone.getContext().updateInterval = 0.01;
 const CUBE_COLORS = { WHITE: 0xffffff, RED: 0xb71234, YELLOW: 0xffd500, ORANGE: 0xff5800, GREEN: 0x009b48, BLUE: 0x0046ad, BLACK: 0x111111 };
 const CUBE_MOVES = {
     'U': { axis: 'y', layers: [1.5], sign: -1 }, 'u': { axis: 'y', layers: [0.5], sign: -1 }, 'D': { axis: 'y', layers: [-1.5], sign: 1 },
@@ -41,6 +46,17 @@ function loadAudioAssets() {
         console.log('Audio samples loaded successfully.');
         if (toggleLoopBtn) { toggleLoopBtn.disabled = false; toggleLoopBtn.textContent = 'Play'; }
     }}).toDestination();
+}
+
+function updatePlayhead() {
+    if (!isPlaying) return;
+    const stepDuration = Tone.Time('16n').toSeconds();
+    const nextStep = Math.floor(Tone.Transport.seconds / stepDuration) % 16;
+    if (nextStep !== activeStep) {
+        activeStep = nextStep;
+        renderStepGrid();
+    }
+    playheadFrame = requestAnimationFrame(updatePlayhead);
 }
 
 // --- Core Functions ---
@@ -147,6 +163,7 @@ async function startSequencer() {
         setupDrumSequences();
         Tone.Transport.start();
         isPlaying = true;
+        updatePlayhead();
     }
     document.getElementById('toggleLoopBtn').textContent = 'Stop';
 }
@@ -164,8 +181,6 @@ function setupBassSequence() {
     if (arpeggioSequence) arpeggioSequence.dispose();
     
     arpeggioSequence = new Tone.Sequence((time, d) => {
-        activeStep = d.index;
-        requestAnimationFrame(() => renderStepGrid());
         if (mutedStickers.has(d.id) || !d.note) return;
         sampler.triggerAttackRelease(d.note, noteDuration, time); // Use the calculated duration
         const mat = d.cubie.material[getMaterialIndexForFace(d.faceName)];
@@ -179,6 +194,7 @@ function stopSequencer() {
     disposeDrumSequences();
     Tone.Transport.stop();
     isPlaying = false;
+    cancelAnimationFrame(playheadFrame);
     activeStep = -1;
     renderStepGrid();
     document.getElementById('toggleLoopBtn').textContent = 'Play';

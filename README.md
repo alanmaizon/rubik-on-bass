@@ -118,6 +118,13 @@ Playback uses Tone.js's short look-ahead scheduler. The drum voices are created 
 scheduled while the cube view changes, so camera movement and pattern edits do not restart the
 transport or add timing jitter.
 
+Web audio cannot provide literally zero-latency output: the browser, audio interface, operating
+system, and speakers or headphones each add a small amount of latency. WASM would not remove
+that output-buffer delay because the drum voices are already scheduled by the browser's native
+Web Audio clock. For the tightest response, use wired headphones or an audio interface, avoid
+Bluetooth, keep the browser tab visible, and close CPU-heavy tabs. Asset caching can improve
+startup time but does not change the timing of individual steps.
+
 ## Technologies Used
 
   * **Web:** JavaScript (ES6 Modules), Three.js, Tone.js
