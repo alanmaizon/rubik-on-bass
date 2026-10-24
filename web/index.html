@@ -200,6 +200,54 @@
             z-index: 10;
             pointer-events: none;
         }
+        #step-sequencer {
+            position: absolute;
+            left: 50%;
+            bottom: 42px;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: min(92vw, 720px);
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            background: rgba(10, 10, 10, 0.72);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #step-sequencer-title {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        #step-grid {
+            display: grid;
+            grid-template-columns: repeat(16, minmax(18px, 1fr));
+            gap: 4px;
+        }
+        .step {
+            min-width: 0;
+            padding: 7px 2px;
+            font-size: 11px;
+            border-radius: 4px;
+            color: white;
+            background: rgba(255,255,255,0.12);
+            border-color: transparent;
+        }
+        .step.is-muted { opacity: 0.35; text-decoration: line-through; }
+        .step.is-active {
+            color: #111;
+            background: #ffd500;
+            border-color: white;
+            box-shadow: 0 0 12px rgba(255,213,0,0.8);
+        }
+        @media (max-width: 600px) {
+            #step-sequencer { bottom: 38px; padding: 8px; }
+            #step-grid { gap: 2px; }
+            .step { padding: 6px 0; font-size: 9px; }
+        }
     </style>
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
     <script type="importmap">
@@ -256,6 +304,11 @@
             </div>
         </div>
     </div>
+
+    <section id="step-sequencer" aria-label="16-step sequencer">
+        <div id="step-sequencer-title">16-step loop · click a step to mute</div>
+        <div id="step-grid"></div>
+    </section>
 
     <div id="hint">Drag to orbit · Click stickers to mute</div>
 

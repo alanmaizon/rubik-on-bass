@@ -103,6 +103,13 @@ Audio samples are bundled in `ios/RubikCube/Audio/`.
   * **Mute Notes:** Tap any colored sticker on the cube to mute or unmute its note.
   * **Master Controls:** Use Mute All, Unmute All, Reset Cube, and Scramble.
 
+### Reading the loop
+
+The web app includes a 16-step loop beneath the cube. Each cell shows the note derived from
+the currently visible face, the yellow highlight marks the step being played, and clicking a
+cell mutes or unmutes that step. Changing the cube orientation rebuilds the loop from the new
+front face. Use the menu's Play/Stop button and BPM controls to start and shape the loop.
+
 ## Technologies Used
 
   * **Web:** JavaScript (ES6 Modules), Three.js, Tone.js

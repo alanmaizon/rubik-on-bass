@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 let scene, camera, renderer, controls, rubikCube;
 let isAnimating = false, rotationQueue = [], currentAnimation = null;
 let currentFrontFaceStickers = [], arpeggioSequence = null, isPlaying = false;
+let activeStep = -1;
 const mutedStickers = new Set();
 let sampler; // Audio player
 let allCubies = [];
@@ -92,6 +93,10 @@ function setupEventListeners() {
     document.getElementById('resetCubeBtn')?.addEventListener('click', resetCube);
     document.getElementById('muteAllBtn')?.addEventListener('click', () => muteAllStickers(true));
     document.getElementById('unmuteAllBtn')?.addEventListener('click', () => muteAllStickers(false));
+    document.getElementById('step-grid')?.addEventListener('click', (event) => {
+        const step = event.target.closest('[data-step]');
+        if (step) toggleStepMute(Number(step.dataset.step));
+    });
     
     const bpmInput = document.getElementById('bpmInput');
     const bpmSlider = document.getElementById('bpmSlider');
@@ -131,10 +136,12 @@ async function startSequencer() {
     }
     console.log(`Using note duration: ${noteDuration}`);
 
-    const data = currentFrontFaceStickers.map(s => ({ note: COLOR_TO_NOTE_MAP[s.color], ...s, id: `x:${s.cubie.userData.originalPosition.x},y:${s.cubie.userData.originalPosition.y},z:${s.cubie.userData.originalPosition.z}_face:${s.faceName}` }));
+    const data = currentFrontFaceStickers.map((s, index) => ({ note: COLOR_TO_NOTE_MAP[s.color], ...s, index, id: stickerId(s) }));
     if (arpeggioSequence) arpeggioSequence.dispose();
     
     arpeggioSequence = new Tone.Sequence((time, d) => {
+        activeStep = d.index;
+        requestAnimationFrame(() => renderStepGrid());
         if (mutedStickers.has(d.id) || !d.note) return;
         sampler.triggerAttackRelease(d.note, noteDuration, time); // Use the calculated duration
         const mat = d.cubie.material[getMaterialIndexForFace(d.faceName)];
@@ -150,6 +157,8 @@ function stopSequencer() {
     if (arpeggioSequence) arpeggioSequence.dispose();
     Tone.Transport.stop();
     isPlaying = false;
+    activeStep = -1;
+    renderStepGrid();
     document.getElementById('toggleLoopBtn').textContent = 'Play';
 }
 
@@ -206,6 +215,7 @@ function muteAllStickers(shouldMute) {
         console.log("All stickers unmuted.");
     }
     updateAllMuteVisuals();
+    renderStepGrid();
     if (isPlaying) startSequencer();
 }
 
@@ -282,6 +292,38 @@ function getFrontFaceStickers() {
     });
     currentFrontFaceStickers = front;
     updateAllMuteVisuals();
+    renderStepGrid();
+}
+
+function stickerId(sticker) {
+    const { x, y, z } = sticker.cubie.userData.originalPosition;
+    return `x:${x},y:${y},z:${z}_face:${sticker.faceName}`;
+}
+
+function renderStepGrid() {
+    const grid = document.getElementById('step-grid');
+    if (!grid) return;
+    grid.replaceChildren(...Array.from({ length: 16 }, (_, index) => {
+        const sticker = currentFrontFaceStickers[index];
+        const button = document.createElement('button');
+        button.className = 'step';
+        button.dataset.step = index;
+        button.type = 'button';
+        button.textContent = sticker ? (COLOR_TO_NOTE_MAP[sticker.color] || '--') : '--';
+        button.setAttribute('aria-label', `Step ${index + 1}${sticker ? `, ${button.textContent}` : ''}`);
+        if (sticker && mutedStickers.has(stickerId(sticker))) button.classList.add('is-muted');
+        if (index === activeStep) button.classList.add('is-active');
+        return button;
+    }));
+}
+
+function toggleStepMute(index) {
+    const sticker = currentFrontFaceStickers[index];
+    if (!sticker) return;
+    const id = stickerId(sticker);
+    mutedStickers.has(id) ? mutedStickers.delete(id) : mutedStickers.add(id);
+    applyMuteVisual(sticker.cubie, sticker.faceName, mutedStickers.has(id));
+    renderStepGrid();
 }
 
 function handleTouchStart(event) {
@@ -333,9 +375,10 @@ function handleCanvasClick(event) {
         const faceName = getFaceNameFromMaterialIndex(face.materialIndex);
         if (!faceName) return;
         const { x, y, z } = cubie.userData.originalPosition;
-        const stickerId = `x:${x},y:${y},z:${z}_face:${faceName}`;
-        mutedStickers.has(stickerId) ? mutedStickers.delete(stickerId) : mutedStickers.add(stickerId);
-        applyMuteVisual(cubie, faceName, mutedStickers.has(stickerId));
+        const id = `x:${x},y:${y},z:${z}_face:${faceName}`;
+        mutedStickers.has(id) ? mutedStickers.delete(id) : mutedStickers.add(id);
+        applyMuteVisual(cubie, faceName, mutedStickers.has(id));
+        renderStepGrid();
         if (isPlaying) startSequencer();
     }
 }
