@@ -248,6 +248,58 @@
             #step-grid { gap: 2px; }
             .step { padding: 6px 0; font-size: 9px; }
         }
+        #drum-machine {
+            position: absolute;
+            top: 50%;
+            left: 16px;
+            transform: translateY(-50%);
+            z-index: 10;
+            width: min(34vw, 390px);
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            background: rgba(10, 10, 10, 0.72);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #drum-machine-title {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .drum-track {
+            display: grid;
+            grid-template-columns: 42px repeat(16, minmax(10px, 1fr));
+            gap: 3px;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .drum-track-label {
+            color: rgba(255,255,255,0.8);
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .drum-step {
+            min-width: 0;
+            height: 18px;
+            padding: 0;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            border-color: transparent;
+        }
+        .drum-step.is-on { background: #007bff; }
+        .drum-step.is-active { box-shadow: 0 0 8px #ffd500; border-color: #ffd500; }
+        @media (max-width: 800px) {
+            #drum-machine { left: 8px; top: auto; bottom: 150px; transform: none; width: min(82vw, 390px); }
+        }
+        @media (max-width: 600px) {
+            #drum-machine { bottom: 145px; padding: 8px; }
+            .drum-track { grid-template-columns: 34px repeat(16, minmax(8px, 1fr)); gap: 2px; }
+            .drum-step { height: 14px; }
+        }
     </style>
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
     <script type="importmap">
@@ -308,6 +360,14 @@
     <section id="step-sequencer" aria-label="16-step sequencer">
         <div id="step-sequencer-title">16-step loop · click a step to mute</div>
         <div id="step-grid"></div>
+    </section>
+
+    <section id="drum-machine" aria-label="808 drum machine">
+        <div id="drum-machine-title">808 drum machine · click steps</div>
+        <div class="drum-track" data-track="kick"><span class="drum-track-label">Kick</span></div>
+        <div class="drum-track" data-track="snare"><span class="drum-track-label">Snare</span></div>
+        <div class="drum-track" data-track="hat"><span class="drum-track-label">Hat</span></div>
+        <div class="drum-track" data-track="clap"><span class="drum-track-label">Clap</span></div>
     </section>
 
     <div id="hint">Drag to orbit · Click stickers to mute</div>

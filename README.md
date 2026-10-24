@@ -110,6 +110,10 @@ the currently visible face, the yellow highlight marks the step being played, an
 cell mutes or unmutes that step. Changing the cube orientation rebuilds the loop from the new
 front face. Use the menu's Play/Stop button and BPM controls to start and shape the loop.
 
+The loop also drives a synchronized 808-style drum machine with kick, snare, closed hi-hat,
+and clap tracks. Each track starts with a simple pattern; click its 16 steps to turn hits on
+or off. The drum tracks use the same Tone.js transport and BPM as the Rubik bass sequence.
+
 ## Technologies Used
 
   * **Web:** JavaScript (ES6 Modules), Three.js, Tone.js

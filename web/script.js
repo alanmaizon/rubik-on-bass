@@ -6,11 +6,18 @@ let scene, camera, renderer, controls, rubikCube;
 let isAnimating = false, rotationQueue = [], currentAnimation = null;
 let currentFrontFaceStickers = [], arpeggioSequence = null, isPlaying = false;
 let activeStep = -1;
+let drumSequences = [], drumKit = null;
 const mutedStickers = new Set();
 let sampler; // Audio player
 let allCubies = [];
 let currentBaseNoteDuration = '16n';
 let isHalfLength = false;
+const drumPatterns = {
+    kick:  [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    hat:   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    clap:  [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+};
 let touchStartX, touchStartY, isDragging;
 let touchStartTime; 
 
@@ -97,6 +104,10 @@ function setupEventListeners() {
         const step = event.target.closest('[data-step]');
         if (step) toggleStepMute(Number(step.dataset.step));
     });
+    document.getElementById('drum-machine')?.addEventListener('click', (event) => {
+        const step = event.target.closest('[data-drum-track][data-drum-step]');
+        if (step) toggleDrumStep(step.dataset.drumTrack, Number(step.dataset.drumStep));
+    });
     
     const bpmInput = document.getElementById('bpmInput');
     const bpmSlider = document.getElementById('bpmSlider');
@@ -138,6 +149,7 @@ async function startSequencer() {
 
     const data = currentFrontFaceStickers.map((s, index) => ({ note: COLOR_TO_NOTE_MAP[s.color], ...s, index, id: stickerId(s) }));
     if (arpeggioSequence) arpeggioSequence.dispose();
+    disposeDrumSequences();
     
     arpeggioSequence = new Tone.Sequence((time, d) => {
         activeStep = d.index;
@@ -148,6 +160,7 @@ async function startSequencer() {
         if (mat) { mat.emissive.setHex(d.color); mat.emissiveIntensity = 0.8; setTimeout(() => mat.emissiveIntensity = 0, 100); }
     }, data, "16n").start(0);
     arpeggioSequence.loop = true;
+    setupDrumSequences();
     Tone.Transport.start();
     isPlaying = true;
     document.getElementById('toggleLoopBtn').textContent = 'Stop';
@@ -155,11 +168,59 @@ async function startSequencer() {
 
 function stopSequencer() {
     if (arpeggioSequence) arpeggioSequence.dispose();
+    disposeDrumSequences();
     Tone.Transport.stop();
     isPlaying = false;
     activeStep = -1;
     renderStepGrid();
     document.getElementById('toggleLoopBtn').textContent = 'Play';
+}
+
+function setupDrumKit() {
+    if (drumKit) return;
+    drumKit = {
+        kick: new Tone.MembraneSynth({
+            pitchDecay: 0.04, octaves: 7, oscillator: { type: 'sine' },
+            envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.05 }
+        }).toDestination(),
+        snare: new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.001, decay: 0.14, sustain: 0, release: 0.03 }
+        }).toDestination(),
+        hat: new Tone.MetalSynth({
+            frequency: 240, envelope: { attack: 0.001, decay: 0.05, release: 0.01 },
+            harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
+        }).toDestination(),
+        clap: new Tone.NoiseSynth({
+            noise: { type: 'pink' },
+            envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.03 }
+        }).toDestination()
+    };
+    drumKit.kick.volume.value = -3;
+    drumKit.snare.volume.value = -8;
+    drumKit.hat.volume.value = -14;
+    drumKit.clap.volume.value = -10;
+}
+
+function setupDrumSequences() {
+    setupDrumKit();
+    const trigger = {
+        kick: (time) => drumKit.kick.triggerAttackRelease('C1', '8n', time),
+        snare: (time) => drumKit.snare.triggerAttackRelease('16n', time),
+        hat: (time) => drumKit.hat.triggerAttackRelease('32n', time),
+        clap: (time) => drumKit.clap.triggerAttackRelease('16n', time)
+    };
+    drumSequences = Object.entries(drumPatterns).map(([track, pattern]) =>
+        new Tone.Sequence((time, enabled) => {
+            if (enabled) trigger[track](time);
+        }, pattern, '16n').start(0)
+    );
+    drumSequences.forEach(sequence => { sequence.loop = true; });
+}
+
+function disposeDrumSequences() {
+    drumSequences.forEach(sequence => sequence.dispose());
+    drumSequences = [];
 }
 
 function resetCube() {
@@ -315,6 +376,33 @@ function renderStepGrid() {
         if (index === activeStep) button.classList.add('is-active');
         return button;
     }));
+    renderDrumGrid();
+}
+
+function renderDrumGrid() {
+    Object.entries(drumPatterns).forEach(([track, pattern]) => {
+        const row = document.querySelector(`[data-track="${track}"]`);
+        if (!row) return;
+        row.replaceChildren(
+            Object.assign(document.createElement('span'), { className: 'drum-track-label', textContent: track }),
+            ...pattern.map((enabled, index) => {
+                const button = document.createElement('button');
+                button.className = 'drum-step';
+                button.type = 'button';
+                button.dataset.drumTrack = track;
+                button.dataset.drumStep = index;
+                button.setAttribute('aria-label', `${track} step ${index + 1}`);
+                if (enabled) button.classList.add('is-on');
+                if (index === activeStep) button.classList.add('is-active');
+                return button;
+            })
+        );
+    });
+}
+
+function toggleDrumStep(track, index) {
+    drumPatterns[track][index] = drumPatterns[track][index] ? 0 : 1;
+    renderDrumGrid();
 }
 
 function toggleStepMute(index) {
