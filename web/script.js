@@ -11,9 +11,11 @@ let drumSequences = [], drumKit = null;
 const mutedStickers = new Set();
 let sampler; // Audio player
 let samplerReady = false;
+let samplerLoadPromise;
 let allCubies = [];
 let currentBaseNoteDuration = '16n';
 let isHalfLength = false;
+let desiredBpm = 83;
 const drumPatterns = {
     kick:  [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
     snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
@@ -24,11 +26,7 @@ let touchStartX, touchStartY, isDragging;
 let touchStartTime; 
 
 // --- Constants ---
-Tone.setContext(new Tone.Context({
-    latencyHint: 'interactive',
-    lookAhead: 0.01,
-    updateInterval: 0.01
-}));
+Tone.getContext().lookAhead = 0.01;
 Tone.getContext().updateInterval = 0.01;
 const CUBE_COLORS = { WHITE: 0xffffff, RED: 0xb71234, YELLOW: 0xffd500, ORANGE: 0xff5800, GREEN: 0x009b48, BLUE: 0x0046ad, BLACK: 0x111111 };
 const CUBE_MOVES = {
@@ -41,13 +39,21 @@ const COLOR_TO_NOTE_MAP = { [CUBE_COLORS.WHITE]: 'C4', [CUBE_COLORS.RED]: 'D4', 
 
 // --- Asset Loading ---
 function loadAudioAssets() {
-    const toggleLoopBtn = document.getElementById('toggleLoopBtn');
+    if (samplerLoadPromise) return samplerLoadPromise;
     const synthSamples = { 'C4': 'white.wav', 'D4': 'red.wav', 'E4': 'blue.wav', 'G4': 'orange.wav', 'A4': 'green.wav', 'C5': 'yellow.wav' };
-    sampler = new Tone.Sampler({ urls: synthSamples, baseUrl: "./", onload: () => {
-        samplerReady = true;
-        console.log('Audio samples loaded successfully.');
-        if (toggleLoopBtn) { toggleLoopBtn.disabled = false; toggleLoopBtn.textContent = 'Play'; }
-    }}).toDestination();
+    samplerLoadPromise = new Promise((resolve, reject) => {
+        sampler = new Tone.Sampler({
+            urls: synthSamples,
+            baseUrl: "./",
+            onload: () => {
+                samplerReady = true;
+                console.log('Audio samples loaded successfully.');
+                resolve();
+            },
+            onerror: reject
+        }).toDestination();
+    });
+    return samplerLoadPromise;
 }
 
 function setAudioStatus(message) {
@@ -56,9 +62,9 @@ function setAudioStatus(message) {
 }
 
 async function ensureAudioRunning() {
-    await Tone.start();
     const rawContext = Tone.getContext().rawContext;
     if (rawContext.state !== 'running') await rawContext.resume();
+    await Tone.start();
     if (rawContext.state !== 'running') {
         throw new Error(`AudioContext is ${rawContext.state}; allow audio and try again`);
     }
@@ -67,6 +73,7 @@ async function ensureAudioRunning() {
 
 async function testSound() {
     const rawContext = await ensureAudioRunning();
+    if (!sampler) await loadAudioAssets();
     const oscillator = new Tone.Oscillator(440, 'sine').toDestination();
     oscillator.volume.value = -6;
     oscillator.start();
@@ -104,7 +111,6 @@ function init() {
     createRubikCube();
     setupEventListeners();
     setTimeout(onInteractionEnd, 100);
-    loadAudioAssets();
 }
 
 function animate() {
@@ -176,7 +182,8 @@ function setupEventListeners() {
 
     const setBpm = (value) => {
         const bpm = Math.max(20, Math.min(200, parseInt(value) || 83));
-        Tone.Transport.bpm.value = bpm;
+        desiredBpm = bpm;
+        if (isPlaying) Tone.Transport.bpm.value = bpm;
         bpmInput.value = bpm;
         bpmSlider.value = bpm;
     };
@@ -201,9 +208,8 @@ async function startSequencer() {
     const rawContext = await ensureAudioRunning();
     setAudioStatus(`Sequencer audio ready · context ${rawContext.state}`);
     if (currentFrontFaceStickers.length < 16) return;
-    if (!samplerReady) {
-        throw new Error('Bass samples are still loading; try Play again');
-    }
+    if (!samplerReady) await loadAudioAssets();
+    Tone.Transport.bpm.value = desiredBpm;
 
     const wasPlaying = isPlaying;
     setupBassSequence();
