@@ -113,7 +113,19 @@ function setupEventListeners() {
     for (const [btnId, move] of Object.entries(moveMap)) {
         document.getElementById(`btn_${btnId}`)?.addEventListener('click', () => rotateFace(move, !btnId.includes('_prime')));
     }
-    document.getElementById('toggleLoopBtn')?.addEventListener('click', () => isPlaying ? stopSequencer() : startSequencer());
+    document.getElementById('toggleLoopBtn')?.addEventListener('click', () => {
+        if (isPlaying) {
+            stopSequencer();
+        } else {
+            startSequencer().catch(error => {
+                console.error('Audio startup failed:', error);
+                stopSequencer();
+                const playButton = document.getElementById('toggleLoopBtn');
+                playButton.textContent = 'Retry audio';
+                playButton.title = `Audio unavailable: ${error.message}`;
+            });
+        }
+    });
     document.getElementById('playRandomBtn')?.addEventListener('click', scrambleCube);
     document.getElementById('resetCubeBtn')?.addEventListener('click', resetCube);
     document.getElementById('muteAllBtn')?.addEventListener('click', () => muteAllStickers(true));
@@ -155,6 +167,11 @@ function setupEventListeners() {
 // --- Sequencer & Master Controls ---
 async function startSequencer() {
     await Tone.start();
+    const rawContext = Tone.getContext().rawContext;
+    if (rawContext.state !== 'running') await rawContext.resume();
+    if (rawContext.state !== 'running') {
+        throw new Error(`AudioContext is ${rawContext.state}; click Play again to allow audio`);
+    }
     if (currentFrontFaceStickers.length < 16) return;
 
     const wasPlaying = isPlaying;
