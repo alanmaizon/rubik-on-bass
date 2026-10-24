@@ -1,10 +1,10 @@
-# Rubik Bass
+# br0
 
 An interactive 4x4 Rubik's Cube audiovisual sequencer available as a **web app** and a **native iOS app**.
 
 ## About The Project
 
-Rubik Bass is a unique musical instrument that transforms a fully interactive 4x4 Rubik's Cube into a 16-step arpeggio sequencer. The colors on the face of the cube directly map to musical notes, creating a dynamic and visually engaging way to compose music.
+br0 is a unique musical instrument that transforms a fully interactive 4x4 Rubik's Cube into a 16-step arpeggio sequencer. The colors on the face of the cube directly map to musical notes, creating a dynamic and visually engaging way to compose music.
 
 What started as a simple 3D model has evolved into a feature-rich creative tool with controls for tempo, note muting, and cube manipulation — available on both the web and iOS.
 

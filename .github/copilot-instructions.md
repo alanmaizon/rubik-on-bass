@@ -1,8 +1,8 @@
-# Copilot Instructions for Rubik Bass
+# Copilot Instructions for br0
 
 ## Project Overview
 
-Rubik Bass is an interactive 4x4 Rubik's Cube audiovisual sequencer available as a **web app** and a **native iOS app**. The 16 stickers on the cube's front face map to musical notes, creating a looping 16-step arpeggio. Users can rotate the cube, mute individual stickers, and adjust tempo.
+br0 is an interactive 4x4 Rubik's Cube audiovisual sequencer available as a **web app** and a **native iOS app**. The 16 stickers on the cube's front face map to musical notes, creating a looping 16-step arpeggio. Users can rotate the cube, mute individual stickers, and adjust tempo.
 
 ## Repository Structure
 
